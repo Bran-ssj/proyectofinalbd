@@ -1,8 +1,6 @@
--- ============================================================
--- PROGRAMACIÓN EN LA BASE DE DATOS (VERSIÓN CORREGIDA FINAL)
--- ============================================================
-
-
+-- ================================
+-- Programación en la base de datos
+-- ================================
 -- =====================================
 -- FUNCION 1
 -- Cantidad de prestamos de un socio
@@ -168,9 +166,7 @@ $$;
 -- =====================================
 -- PROCEDIMIENTO 2
 -- Registrar reserva
--- Corregido: la reserva se hace sobre un EJEMPLAR (que debe estar
--- en préstamo), no sobre un préstamo directamente, conforme al
--- modelo ER y relacional ya validados (RESERVA -> EJEMPLAR).
+-- corrección hecha debido a error de relación en diagrama ER 
 -- =====================================
 
 CREATE OR REPLACE PROCEDURE registrar_reserva(
