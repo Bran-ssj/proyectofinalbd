@@ -95,7 +95,7 @@ INNER JOIN libro_autor la
     ON a.id_autor = la.id_autor
 GROUP BY a.nombre
 ORDER BY titulos_en_catalogo DESC;
-
+--
 -- CONSULTA 9: Ejemplares que nunca han sido prestados
 SELECT
     e.id_ejemplar,

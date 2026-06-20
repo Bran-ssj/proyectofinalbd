@@ -4,7 +4,7 @@
 -- devoluciones, multas y usuarios de una biblioteca.
 -- ============================================================
 
-CREATE DATABASE proyecto;
+CREATE DATABASE biblio;
 
 -- ============================================================
 -- TABLA AUTOR
@@ -161,22 +161,22 @@ CREATE TABLE prestamo (
 -- ============================================================
 -- TABLA RESERVA
 -- Registra las reservas realizadas por los socios sobre
--- ejemplares que actualmente se encuentran en préstamo.
+-- ejemplares que no se encuentran disponibles (estan en préstamo).
 -- ============================================================
 
 CREATE TABLE reserva (
     id_reserva SERIAL PRIMARY KEY,
     fecha_reserva DATE NOT NULL,
     id_socio INTEGER NOT NULL,
-    id_prestamo INTEGER NOT NULL,
+    id_ejemplar INTEGER NOT NULL,
 
     CONSTRAINT fk_reserva_socio
         FOREIGN KEY (id_socio)
         REFERENCES socio(id_socio),
 
-    CONSTRAINT fk_reserva_prestamo
-        FOREIGN KEY (id_prestamo)
-        REFERENCES prestamo(id_prestamo)
+    CONSTRAINT fk_reserva_ejemplar
+        FOREIGN KEY (id_ejemplar)
+        REFERENCES ejemplar(id_ejemplar)
 );
 
 -- ============================================================

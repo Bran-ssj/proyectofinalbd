@@ -1,5 +1,5 @@
 -- ============================================================
--- PROGRAMACIÓN EN LA BASE DE DATOS (VERSIÓN CORREGIDA)
+-- PROGRAMACIÓN EN LA BASE DE DATOS (VERSIÓN CORREGIDA FINAL)
 -- ============================================================
 
 
@@ -97,7 +97,7 @@ AS $$
 DECLARE
 
     v_estado VARCHAR(20);
-    v_prestamos INTEGER;
+    v_prestamos_activos INTEGER;
     v_multas INTEGER;
 
 BEGIN
@@ -114,14 +114,17 @@ BEGIN
         'El ejemplar no está disponible';
     END IF;
 
-    -- Verificar máximo 3 préstamos
+    -- Verificar máximo 3 préstamos ACTIVOS (sin devolución registrada)
 
     SELECT COUNT(*)
-    INTO v_prestamos
-    FROM prestamo
-    WHERE id_socio = p_id_socio;
+    INTO v_prestamos_activos
+    FROM prestamo p
+    WHERE p.id_socio = p_id_socio
+      AND NOT EXISTS (
+            SELECT 1 FROM devolucion d WHERE d.id_prestamo = p.id_prestamo
+      );
 
-    IF v_prestamos >= 3 THEN
+    IF v_prestamos_activos >= 3 THEN
         RAISE EXCEPTION
         'El socio ya posee 3 préstamos activos';
     END IF;
@@ -135,12 +138,12 @@ BEGIN
         ON m.id_devolucion = d.id_devolucion
     INNER JOIN prestamo p
         ON d.id_prestamo = p.id_prestamo
-    WHERE p.id_socio = p_id_socio   
+    WHERE p.id_socio = p_id_socio
       AND m.pagada = FALSE;
 
     IF v_multas > 0 THEN
         RAISE EXCEPTION
-        'El socio tiene multas pendientes';   
+        'El socio tiene multas pendientes';
     END IF;
 
     INSERT INTO prestamo(
@@ -165,26 +168,46 @@ $$;
 -- =====================================
 -- PROCEDIMIENTO 2
 -- Registrar reserva
+-- Corregido: la reserva se hace sobre un EJEMPLAR (que debe estar
+-- en préstamo), no sobre un préstamo directamente, conforme al
+-- modelo ER y relacional ya validados (RESERVA -> EJEMPLAR).
 -- =====================================
 
 CREATE OR REPLACE PROCEDURE registrar_reserva(
     p_fecha DATE,
     p_id_socio INTEGER,
-    p_id_prestamo INTEGER     
+    p_id_ejemplar INTEGER
 )
 LANGUAGE plpgsql
 AS $$
+DECLARE
+    v_estado VARCHAR(20);
 BEGIN
+
+    -- Regla de negocio: un ejemplar solo puede reservarse si está prestado
+    SELECT estado
+    INTO v_estado
+    FROM ejemplar
+    WHERE id_ejemplar = p_id_ejemplar;
+
+    IF v_estado IS NULL THEN
+        RAISE EXCEPTION 'El ejemplar indicado no existe';
+    END IF;
+
+    IF v_estado <> 'Prestado' THEN
+        RAISE EXCEPTION
+        'Solo se pueden reservar ejemplares que estén en préstamo';
+    END IF;
 
     INSERT INTO reserva(
         fecha_reserva,
         id_socio,
-        id_prestamo           
+        id_ejemplar
     )
     VALUES(
         p_fecha,
         p_id_socio,
-        p_id_prestamo
+        p_id_ejemplar
     );
 
 END;
@@ -333,10 +356,14 @@ DECLARE
     v_estado_antes VARCHAR(20);
     v_estado_despues VARCHAR(20);
 BEGIN
-    -- Buscamos un socio que cumpla las reglas: menos de 3 préstamos y sin multas pendientes
+    -- Buscamos un socio que cumpla las reglas: menos de 3 préstamos activos y sin multas pendientes
     SELECT s.id_socio INTO v_id_socio
     FROM socio s
-    WHERE (SELECT COUNT(*) FROM prestamo p WHERE p.id_socio = s.id_socio) < 3
+    WHERE (
+        SELECT COUNT(*) FROM prestamo p
+        WHERE p.id_socio = s.id_socio
+          AND NOT EXISTS (SELECT 1 FROM devolucion d WHERE d.id_prestamo = p.id_prestamo)
+    ) < 3
       AND NOT EXISTS (
             SELECT 1
             FROM multa m
@@ -360,24 +387,31 @@ BEGIN
     RAISE NOTICE 'DEMO trg_prestamo -> estado del ejemplar DESPUES: %', v_estado_despues; -- debe decir 'Prestado' si el trigger funcionó
 END $$;
 
--- ---- DEMO 2: registrar_reserva ----
+---- DEMO 2: registrar_reserva ----
 DO $$
 DECLARE
-    v_id_socio    INTEGER;
-    v_id_prestamo INTEGER;
-    v_reservas_antes INTEGER;
-    v_reservas_despues INTEGER;
+    v_id_socio_reserva INTEGER;
+    v_id_ejemplar       INTEGER;
+    v_reservas_antes    INTEGER;
+    v_reservas_despues  INTEGER;
 BEGIN
-    -- Usamos el préstamo recién creado en la DEMO 1
-    SELECT id_socio, id_prestamo INTO v_id_socio, v_id_prestamo
+    -- Tomamos el ejemplar que quedó 'Prestado' tras la DEMO 1
+    SELECT id_ejemplar INTO v_id_ejemplar
     FROM prestamo
     ORDER BY id_prestamo DESC
+    LIMIT 1;
+
+    -- El socio que reserva debe ser distinto al que tiene el préstamo activo
+    SELECT id_socio INTO v_id_socio_reserva
+    FROM socio
+    WHERE id_socio <> (SELECT id_socio FROM prestamo ORDER BY id_prestamo DESC LIMIT 1)
+    ORDER BY id_socio
     LIMIT 1;
 
     SELECT COUNT(*) INTO v_reservas_antes FROM reserva; -- conteo antes de insertar
     RAISE NOTICE 'DEMO registrar_reserva -> reservas ANTES: %', v_reservas_antes;
 
-    CALL registrar_reserva(CURRENT_DATE, v_id_socio, v_id_prestamo); -- ejecuta el procedimiento corregido
+    CALL registrar_reserva(CURRENT_DATE, v_id_socio_reserva, v_id_ejemplar); -- ejecuta el procedimiento corregido
 
     SELECT COUNT(*) INTO v_reservas_despues FROM reserva; -- conteo después de insertar
     RAISE NOTICE 'DEMO registrar_reserva -> reservas DESPUES: %', v_reservas_despues; -- debe ser ANTES + 1
@@ -393,7 +427,7 @@ DECLARE
     v_estado_ejemplar VARCHAR(20);
     v_multas_generadas INTEGER;
 BEGIN
-    -- Reutilizamos el préstamo de la DEMO 1 
+    -- Reutilizamos el préstamo de la DEMO 1
     SELECT id_prestamo, id_ejemplar, fecha_limite
     INTO v_id_prestamo, v_id_ejemplar, v_fecha_limite
     FROM prestamo

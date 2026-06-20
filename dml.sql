@@ -1,6 +1,7 @@
-
 -- ============================================================
 -- DATOS DE POBLACION: BIBLIOTECA PUBLICA
+-- Generado garantizando consistencia de FKs, fechas coherentes
+-- y cumplimiento de las reglas de negocio del sistema.
 -- ============================================================
 
 -- =====================================
@@ -630,27 +631,29 @@ INSERT INTO multa (monto, pagada, id_devolucion) VALUES
 -- TABLA RESERVA
 -- =====================================
 
--- Las reservas se realizan sobre prestamos que aun no han sido devueltos,
--- es decir, sobre ejemplares que actualmente estan prestados.
-INSERT INTO reserva (fecha_reserva, id_socio, id_prestamo) VALUES
-('2025-11-13', 34, 99),
-('2026-05-27', 28, 101),
-('2026-04-09', 45, 66),
-('2026-06-04', 43, 86),
-('2025-10-26', 48, 97),
-('2025-08-28', 28, 110),
-('2025-07-08', 15, 12),
-('2026-04-29', 23, 113),
-('2026-02-25', 27, 80),
-('2025-11-23', 48, 32),
-('2026-02-01', 21, 96),
-('2026-02-27', 21, 116),
-('2025-05-23', 24, 88),
-('2025-01-30', 45, 75),
-('2025-12-17', 5, 89),
-('2026-04-20', 6, 85),
-('2025-12-04', 29, 112),
-('2025-06-14', 48, 11);
+-- Las reservas se realizan sobre ejemplares que actualmente estan
+-- en prestamo (regla de negocio: un ejemplar puede ser reservado
+-- si esta en prestamo). La fecha de reserva siempre es posterior
+-- a la fecha del prestamo activo que mantiene ocupado al ejemplar.
+INSERT INTO reserva (fecha_reserva, id_socio, id_ejemplar) VALUES
+('2025-11-13', 34, 22),
+('2026-05-27', 28, 88),
+('2026-04-09', 45, 67),
+('2026-06-04', 43, 107),
+('2025-10-26', 48, 9),
+('2025-08-28', 28, 10),
+('2025-07-08', 15, 111),
+('2026-04-29', 23, 83),
+('2026-02-25', 27, 42),
+('2025-11-23', 48, 18),
+('2026-02-01', 21, 110),
+('2026-02-27', 21, 13),
+('2025-05-23', 24, 25),
+('2025-01-30', 45, 87),
+('2025-12-17', 5, 99),
+('2026-04-20', 6, 108),
+('2025-12-04', 29, 80),
+('2025-06-14', 48, 72);
 
 -- =====================================
 -- ACTUALIZACION DE ESTADO DE EJEMPLARES
