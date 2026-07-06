@@ -1,7 +1,5 @@
 -- ============================================================
--- DATOS DE POBLACION: BIBLIOTECA PUBLICA
--- Generado garantizando consistencia de FKs, fechas coherentes
--- y cumplimiento de las reglas de negocio del sistema.
+-- BIBLIOTECA PUBLICA
 -- ============================================================
 
 -- =====================================
